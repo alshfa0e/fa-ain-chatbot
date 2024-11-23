@@ -1,7 +1,17 @@
 // Select the elements from the HTML file
-const chatbox = document.getElementById('chatbox');
 const userInput = document.getElementById('userInput');
 const sendButton = document.getElementById('sendButton');
+
+// Test Input Capture
+sendButton.addEventListener('click', () => {
+    const userMessage = userInput.value.trim();
+    if (!userMessage) {
+        console.log("No message entered!"); // Log if input is empty
+    } else {
+        console.log("Captured user message:", userMessage); // Log the captured message
+    }
+});
+
 
 // Authorization token for Grok API
 const apiKey = 'xai-ZFV2ONv0AfOlJDgd6LykCwbZX22YgwJE5i324dJ8dm0O8geH1m9Z2F13pXbOuRTy8kHtZoUnttJvqS3M'; // Replace with your Grok API key
