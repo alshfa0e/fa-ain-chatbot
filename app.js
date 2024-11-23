@@ -14,6 +14,7 @@ const firebaseConfig = {
 };
 
 // Initialize Firebase
+console.log("Initializing Firebase...");
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
@@ -21,6 +22,11 @@ const db = getFirestore(app);
 const chatbox = document.getElementById('chatbox');
 const userInput = document.getElementById('userInput');
 const sendButton = document.getElementById('sendButton');
+
+// Check if elements are loaded
+console.log("Chatbox:", chatbox);
+console.log("UserInput:", userInput);
+console.log("SendButton:", sendButton);
 
 // Authorization token for Grok API
 const apiKey = 'xai-ZFV2ONv0AfOlJDgd6LykCwbZX22YgwJE5i324dJ8dm0O8geH1m9Z2F13pXbOuRTy8kHtZoUnttJvqS3M';
@@ -48,6 +54,7 @@ function displayMessage(sender, message) {
     messageElement.innerHTML = `<b>${sender}:</b> ${message}`;
     chatbox.appendChild(messageElement);
     chatbox.scrollTop = chatbox.scrollHeight;
+    console.log(`Displayed message: ${sender} - ${message}`);
 }
 
 // Function to save a conversation session to Firestore
@@ -80,6 +87,7 @@ async function saveContactToDatabase(contact) {
 
 // Function to process user input and get a response from the API
 async function analyzeResponse(userMessage) {
+    console.log("Analyzing response for message:", userMessage);
     try {
         if (!memory.chatHistory) memory.chatHistory = [];
         memory.chatHistory.push({ role: 'user', content: userMessage });
@@ -125,6 +133,7 @@ async function analyzeResponse(userMessage) {
 
 // Event listener for the send button
 sendButton.addEventListener('click', async () => {
+    console.log("Send button clicked.");
     const userMessage = userInput.value.trim();
     if (userMessage) {
         displayMessage('You', userMessage);
@@ -156,6 +165,7 @@ sendButton.addEventListener('click', async () => {
 // Enable "Enter" key to send messages
 userInput.addEventListener('keypress', (event) => {
     if (event.key === 'Enter') {
+        console.log("Enter key pressed.");
         sendButton.click();
     }
 });
