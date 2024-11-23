@@ -23,7 +23,7 @@ const userInput = document.getElementById('userInput');
 const sendButton = document.getElementById('sendButton');
 
 // Authorization token for Grok API
-const apiKey = 'xai-ZFV2ONv0AfOlJDgd6LykCwbZX22YgwJE5i324dJ8dm0O8geH1m9Z2F13pXbOuRTy8kHtZoUnttJvqS3M'; // Replace with your Grok API key
+const apiKey = 'xai-ZFV2ONv0AfOlJDgd6LykCwbZX22YgwJE5i324dJ8dm0O8geH1m9Z2F13pXbOuRTy8kHtZoUnttJvqS3M';
 
 // Secret code for developer interaction
 const developerCode = 'Faisal3ez';
@@ -31,68 +31,14 @@ const developerCode = 'Faisal3ez';
 // Memory object for short-term session memory
 let memory = {};
 
-
-
-// System prompt for the bot, incorporating FA Ain’s core services and tailored recommendations
-
+// System prompt for the bot
 const systemPrompt = `
-You are the virtual assistant for فاء عين (FA Ain), a company specializing in project management, feasibility studies, financial analysis, and innovative solutions. Your mission is to provide professional, tailored, and actionable assistance to users while embodying FA Ain’s core values of efficiency, innovation, and sustainability. Adapt your responses to meet the needs of diverse users, including individuals, companies, private sectors, and governments.
-
-### Guidelines:
-
-1. **Understand User Needs**:
-   - Analyze user queries to extract critical details such as project type, budget, goals, and location.
-   - Identify implicit needs and adapt responses to the user’s context, whether they are an individual, a company, a private sector entity, or a government body.
-   - If users are unsure about their needs, guide them step by step with clarifying questions.
-
-2. **Tailored Recommendations**:
-   - Match the user’s needs to FA Ain’s core services:
-     - **Project Development and Management**: Comprehensive planning, execution, and optimization.
-     - **Consulting and Feasibility Studies**: Market research, viability analysis, and risk assessment.
-     - **Financial and Investment Analysis**: Budget planning, cost optimization, and ROI analysis.
-     - **Innovative and Digital Solutions**: AI-powered tools, data-driven strategies, and automation.
-   - Provide examples and actionable next steps, ensuring users feel empowered and informed.
-
-3. **Adapt to Audience**:
-   - For **government representatives**:
-     - Highlight FA Ain’s ability to handle large-scale public projects, policy alignment, and sustainability.
-     - Provide insights into national-scale strategies or infrastructure projects.
-   - For **multi-billion-dollar companies**:
-     - Emphasize scalability, security, and integration with existing systems.
-     - Suggest solutions aligned with corporate goals, ESG (environmental, social, and governance) compliance, and innovation.
-   - For **beginner entrepreneurs**:
-     - Simplify complex concepts and break down FA Ain’s services into easy-to-understand steps.
-     - Offer reassurance and motivational advice to guide them from idea to execution.
-
-4. **Proactive Engagement**:
-   - Anticipate user needs based on their inputs and provide recommendations without waiting for specific questions.
-   - Suggest innovative ideas, industry benchmarks, or potential opportunities relevant to their sector.
-
-5. **Professional Tone**:
-   - Use a polite, professional tone while maintaining approachability and inspiration.
-   - Respond in the user’s language (Arabic or English), ensuring cultural relevance and fluency.
-
-6. **Closure and Follow-Up**:
-   - End conversations gracefully when all necessary assistance has been provided.
-   - Summarize the discussion, highlighting actionable steps, and suggest scheduling a consultation or visiting FA Ain’s offices.
-   - If users hesitate or don’t provide enough information, encourage them to leave their contact details for follow-up.
-
-7. **Error Handling and Redirection**:
-   - If the user’s query is unrelated to FA Ain’s services (e.g., job search), politely clarify the scope of FA Ain and redirect the conversation toward relevant project-based solutions.
-   - Provide fallback responses for unexpected inputs while maintaining professionalism.
-
-8. **Scalability and Innovation**:
-   - Showcase FA Ain’s ability to scale solutions for high-demand scenarios or large-scale projects.
-   - Highlight innovative approaches, including AI-powered tools, market insights, and sustainability-focused strategies.
-
-9. **Developer Mode**:
-   - If the user enters the secret code "Faisal3ez," switch to developer mode and await instructions from the developer.
+You are the virtual assistant for فاء عين (FA Ain), a company specializing in project management, feasibility studies, financial analysis, and innovative solutions. Your mission is to provide professional, tailored, and actionable assistance to users while embodying FA Ain’s core values of efficiency, innovation, and sustainability.
 `;
-
 
 // Function to determine bot name based on response language
 function getBotName(response) {
-    const arabicRegex = /[\u0600-\u06FF]/; // Checks for Arabic characters
+    const arabicRegex = /[\u0600-\u06FF]/;
     return arabicRegex.test(response) ? "فاء عين" : "FA Ain";
 }
 
@@ -132,36 +78,23 @@ async function saveContactToDatabase(contact) {
     }
 }
 
-// Function to load the user's previous session from Firestore
-async function loadPreviousSession() {
-    try {
-        const querySnapshot = await getDocs(collection(db, "sessions"));
-        const sessions = [];
-        querySnapshot.forEach((doc) => {
-            sessions.push({ id: doc.id, ...doc.data() });
-        });
-
-        // Load the most recent session into memory
-        if (sessions.length > 0) {
-            const lastSession = sessions[sessions.length - 1];
-            memory.chatHistory = lastSession.chatHistory || [];
-            console.log("Previous session loaded:", lastSession);
-
-            // Display the previous session in the chatbox
-            memory.chatHistory.forEach((msg) => {
-                displayMessage(msg.role === 'user' ? 'You' : 'Bot', msg.content);
-            });
-        }
-    } catch (error) {
-        console.error("Error loading previous session: ", error);
-    }
-}
-
 // Function to process user input and get a response from the API
 async function analyzeResponse(userMessage) {
     try {
         if (!memory.chatHistory) memory.chatHistory = [];
         memory.chatHistory.push({ role: 'user', content: userMessage });
+
+        const payload = {
+            messages: [
+                { role: 'system', content: systemPrompt },
+                ...memory.chatHistory,
+            ],
+            model: 'grok-beta',
+            stream: false,
+            temperature: 0.7,
+        };
+
+        console.log("Payload sent to API:", JSON.stringify(payload, null, 2));
 
         const response = await fetch('https://api.x.ai/v1/chat/completions', {
             method: 'POST',
@@ -169,31 +102,20 @@ async function analyzeResponse(userMessage) {
                 'Content-Type': 'application/json',
                 Authorization: `Bearer ${apiKey}`,
             },
-            body: JSON.stringify({
-                messages: [
-                    { role: 'system', content: systemPrompt },
-                    ...memory.chatHistory,
-                ],
-                model: 'grok-beta',
-                stream: false,
-                temperature: 0.7,
-            }),
+            body: JSON.stringify(payload),
         });
 
         if (!response.ok) {
-    const errorDetails = await response.text(); // Fetch error details from the server
-    console.error(`API error: ${response.status} ${response.statusText}`, errorDetails);
-    throw new Error(`API error: ${response.status} ${response.statusText}`);
-}
-
+            const errorDetails = await response.text();
+            console.error(`API error: ${response.status} ${response.statusText}`, errorDetails);
+            throw new Error(`API error: ${response.status} ${response.statusText}`);
+        }
 
         const data = await response.json();
         const botMessage = data.choices[0].message.content.trim();
         memory.chatHistory.push({ role: 'bot', content: botMessage });
 
-        // Save the updated session to Firestore
         await saveConversationToDatabase();
-
         return botMessage;
     } catch (error) {
         console.error('Error communicating with the API:', error);
@@ -208,13 +130,11 @@ sendButton.addEventListener('click', async () => {
         displayMessage('You', userMessage);
         userInput.value = '';
 
-        // Check for developer command
         if (userMessage.includes(developerCode)) {
             displayMessage("Developer Mode", JSON.stringify(memory, null, 2));
             return;
         }
 
-        // Check for contact details
         if (userMessage.toLowerCase().includes('my contact is')) {
             const contact = userMessage.split('my contact is')[1].trim();
             await saveContactToDatabase(contact);
@@ -222,7 +142,6 @@ sendButton.addEventListener('click', async () => {
             return;
         }
 
-        // Process user input and get bot response
         try {
             const botResponse = await analyzeResponse(userMessage);
             const botName = getBotName(botResponse);
