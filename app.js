@@ -25,6 +25,24 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
+// Test Firestore Connection
+async function testFirestore() {
+    try {
+        const messageRef = collection(db, "testCollection");
+        await addDoc(messageRef, {
+            testField: "Hello from Chatbot!",
+            timestamp: new Date(),
+        });
+        console.log("Test message saved to Firestore successfully.");
+    } catch (error) {
+        console.error("Error saving test message to Firestore:", error);
+    }
+}
+
+// Call this function at the top of the script to verify Firestore connectivity
+testFirestore();
+
+
 // Memory object for short-term session memory
 let memory = [];
 
