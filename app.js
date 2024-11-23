@@ -23,7 +23,7 @@ const chatbox = document.getElementById('chatbox');
 const userInput = document.getElementById('userInput');
 const sendButton = document.getElementById('sendButton');
 
-// Check if elements are loaded
+// Log UI elements to confirm proper selection
 console.log("Chatbox:", chatbox);
 console.log("UserInput:", userInput);
 console.log("SendButton:", sendButton);
@@ -72,61 +72,21 @@ async function saveConversationToDatabase() {
     }
 }
 
-// Function to save contact details to Firestore
-async function saveContactToDatabase(contact) {
-    try {
-        await addDoc(collection(db, "contacts"), {
-            timestamp: new Date(),
-            contact: contact,
-        });
-        console.log("Contact saved to Firestore!");
-    } catch (error) {
-        console.error("Error saving contact: ", error);
-    }
-}
-
-// Function to process user input and get a response from the API
+// Function to process user input and get a simulated response
 async function analyzeResponse(userMessage) {
     console.log("Analyzing response for message:", userMessage);
     try {
         if (!memory.chatHistory) memory.chatHistory = [];
         memory.chatHistory.push({ role: 'user', content: userMessage });
 
-        const payload = {
-            messages: [
-                { role: 'system', content: systemPrompt },
-                ...memory.chatHistory,
-            ],
-            model: 'grok-beta',
-            stream: false,
-            temperature: 0.7,
-        };
-
-        console.log("Payload sent to API:", JSON.stringify(payload, null, 2));
-
-        const response = await fetch('https://api.x.ai/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${apiKey}`,
-            },
-            body: JSON.stringify(payload),
-        });
-
-        if (!response.ok) {
-            const errorDetails = await response.text();
-            console.error(`API error: ${response.status} ${response.statusText}`, errorDetails);
-            throw new Error(`API error: ${response.status} ${response.statusText}`);
-        }
-
-        const data = await response.json();
-        const botMessage = data.choices[0].message.content.trim();
+        // Simplified bot response for debugging
+        const botMessage = `Echo: ${userMessage}`;
         memory.chatHistory.push({ role: 'bot', content: botMessage });
 
-        await saveConversationToDatabase();
+        await saveConversationToDatabase(); // Save conversation to Firestore
         return botMessage;
     } catch (error) {
-        console.error('Error communicating with the API:', error);
+        console.error('Error during response analysis:', error);
         return 'Sorry, an error occurred while processing your request.';
     }
 }
@@ -136,18 +96,13 @@ sendButton.addEventListener('click', async () => {
     console.log("Send button clicked.");
     const userMessage = userInput.value.trim();
     if (userMessage) {
+        console.log("User message captured:", userMessage);
         displayMessage('You', userMessage);
         userInput.value = '';
 
+        // Developer mode
         if (userMessage.includes(developerCode)) {
             displayMessage("Developer Mode", JSON.stringify(memory, null, 2));
-            return;
-        }
-
-        if (userMessage.toLowerCase().includes('my contact is')) {
-            const contact = userMessage.split('my contact is')[1].trim();
-            await saveContactToDatabase(contact);
-            displayMessage('Bot', 'Thank you! Your contact details have been saved.');
             return;
         }
 
@@ -159,6 +114,8 @@ sendButton.addEventListener('click', async () => {
             console.error('Error processing user input:', error);
             displayMessage('Bot', 'Sorry, an error occurred while processing your request.');
         }
+    } else {
+        console.log("No message entered.");
     }
 });
 
