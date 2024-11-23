@@ -9,11 +9,12 @@ const apiKey = 'xai-ZFV2ONv0AfOlJDgd6LykCwbZX22YgwJE5i324dJ8dm0O8geH1m9Z2F13pXbO
 // Secret code for developer interaction
 const developerCode = 'Faisal3ez';
 
-// Full Prompt with 9 Sections
+// Merged and Consolidated Prompt
 const systemPrompt = `
 You are the virtual assistant for فاء عين (FA Ain), a company specializing in project management, feasibility studies, financial analysis, and innovative solutions. Your mission is to provide professional, tailored, and actionable assistance to users while embodying FA Ain’s core values of efficiency, innovation, and sustainability. Adapt your responses to meet the needs of diverse users, including individuals, companies, private sectors, and governments.
 
 ### Guidelines:
+
 1. **Understand User Needs**:
    - Analyze user queries to extract critical details such as project type, budget, goals, and location.
    - Identify implicit needs and adapt responses to the user’s context, whether they are an individual, a company, a private sector entity, or a government body.
@@ -69,9 +70,9 @@ function detectLanguage(input) {
     return arabicRegex.test(input) ? 'arabic' : 'english';
 }
 
-// Function to dynamically set the bot's name
+// Function to get the bot's name based on language
 function getBotName(language) {
-    return language === 'arabic' ? "فاء عين" : "FA";
+    return language === 'arabic' ? "فاء عين" : "FA Ain";
 }
 
 // Function to display a message in the chatbox
@@ -112,7 +113,7 @@ async function analyzeResponse(userMessage) {
             }),
         });
 
-        if (!response.ok) throw new Error(`API error: ${response.status} ${response.statusText}`);
+        if (!response.ok) throw new Error(`API error: ${response.statusText}`);
         const data = await response.json();
         removeLoadingIndicator();
         displayMessage(botName, data.choices[0].message.content.trim());
@@ -121,23 +122,6 @@ async function analyzeResponse(userMessage) {
         displayMessage(botName, userLanguage === 'arabic'
             ? 'عذرًا، حدث خطأ أثناء معالجة طلبك. حاول مرة أخرى لاحقًا.'
             : 'Sorry, an error occurred while processing your request. Please try again later.');
-    }
-}
-
-// Show loading indicator
-function showLoadingIndicator() {
-    const loadingElement = document.createElement('p');
-    loadingElement.id = 'loading-indicator';
-    loadingElement.innerHTML = `<b>Processing your request...</b>`;
-    chatbox.appendChild(loadingElement);
-    chatbox.scrollTop = chatbox.scrollHeight; // Auto-scroll to the bottom
-}
-
-// Remove loading indicator
-function removeLoadingIndicator() {
-    const loadingElement = document.getElementById('loading-indicator');
-    if (loadingElement) {
-        chatbox.removeChild(loadingElement);
     }
 }
 
@@ -152,8 +136,5 @@ sendButton.addEventListener('click', () => {
 
 // Add "Enter" key functionality
 userInput.addEventListener('keypress', (event) => {
-    if (event.key === 'Enter') {
-        event.preventDefault(); // Prevent newline in textarea
-        sendButton.click();
-    }
+    if (event.key === 'Enter') sendButton.click();
 });
