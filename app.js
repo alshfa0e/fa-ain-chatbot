@@ -6,12 +6,6 @@ const sendButton = document.getElementById('sendButton');
 // Authorization token for Grok API
 const apiKey = 'xai-ZFV2ONv0AfOlJDgd6LykCwbZX22YgwJE5i324dJ8dm0O8geH1m9Z2F13pXbOuRTy8kHtZoUnttJvqS3M'; // Replace with your Grok API key
 
-// Secret code for developer interaction
-const developerCode = 'Faisal3ez';
-
-// Memory object for short-term session memory
-let memory = {};
-
 // Import Firebase modules
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
 import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
@@ -31,6 +25,9 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
+// Memory object for short-term session memory
+let memory = [];
+
 // Function to display a message in the chatbox
 function displayMessage(sender, message) {
     const messageElement = document.createElement('p');
@@ -39,29 +36,28 @@ function displayMessage(sender, message) {
     chatbox.scrollTop = chatbox.scrollHeight;
 }
 
-// Function to save a message to Firestore (long memory)
-async function saveMessageToFirestore(role, content) {
+// Function to save a message to Firestore
+async function saveMessage(role, content) {
     try {
         await addDoc(collection(db, "messages"), {
             role: role,
             content: content,
             timestamp: new Date(),
         });
-        console.log(`Message saved: ${role} - ${content}`);
+        console.log(`Saved message: ${role} - ${content}`);
     } catch (error) {
         console.error("Error saving message to Firestore:", error);
     }
 }
 
-// Function to process user input and get a response from the API
+// Function to handle API response
 async function analyzeResponse(userMessage) {
     try {
         // Add user message to short-term memory
-        if (!memory.chatHistory) memory.chatHistory = [];
-        memory.chatHistory.push({ role: 'user', content: userMessage });
+        memory.push({ role: 'user', content: userMessage });
 
         // Save user message to Firestore
-        await saveMessageToFirestore('user', userMessage);
+        await saveMessage('user', userMessage);
 
         const response = await fetch('https://api.x.ai/v1/chat/completions', {
             method: 'POST',
@@ -71,8 +67,8 @@ async function analyzeResponse(userMessage) {
             },
             body: JSON.stringify({
                 messages: [
-                    { role: 'system', content: 'You are FA Ain, a helpful assistant.' },
-                    ...memory.chatHistory,
+                    { role: 'system', content: "You are FA Ain, a helpful assistant." },
+                    ...memory,
                 ],
                 model: 'grok-beta',
                 stream: false,
@@ -88,15 +84,15 @@ async function analyzeResponse(userMessage) {
         const botMessage = data.choices[0].message.content.trim();
 
         // Add bot message to short-term memory
-        memory.chatHistory.push({ role: 'bot', content: botMessage });
+        memory.push({ role: 'bot', content: botMessage });
 
         // Save bot message to Firestore
-        await saveMessageToFirestore('bot', botMessage);
+        await saveMessage('bot', botMessage);
 
         return botMessage;
     } catch (error) {
         console.error("Error communicating with the API:", error);
-        return 'Sorry, an error occurred while processing your request. Please try again later.';
+        return 'Sorry, an error occurred while processing your request.';
     }
 }
 
@@ -107,13 +103,13 @@ sendButton.addEventListener('click', async () => {
         displayMessage('You', userMessage);
         userInput.value = '';
 
-        // Process user input and get bot response
+        // Process user input and display bot response
         try {
             const botResponse = await analyzeResponse(userMessage);
-            displayMessage("FA Ain", botResponse);
+            displayMessage('FA Ain', botResponse);
         } catch (error) {
-            console.error("Error processing user input:", error);
-            displayMessage("FA Ain", "Sorry, an error occurred while processing your request.");
+            console.error("Error handling user input:", error);
+            displayMessage('FA Ain', "Sorry, an error occurred. Please try again.");
         }
     }
 });
