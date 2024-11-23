@@ -9,6 +9,11 @@ const apiKey = 'xai-ZFV2ONv0AfOlJDgd6LykCwbZX22YgwJE5i324dJ8dm0O8geH1m9Z2F13pXbO
 // Secret code for developer interaction
 const developerCode = 'Faisal3ez';
 
+// Memory object for short-term session memory
+let memory = {};
+
+
+
 // System prompt for the bot, incorporating FA Ain’s core services and tailored recommendations
 
 const systemPrompt = `
@@ -65,7 +70,6 @@ You are the virtual assistant for فاء عين (FA Ain), a company specializing
    - If the user enters the secret code "Faisal3ez," switch to developer mode and await instructions from the developer.
 `;
 
-
 // Function to determine bot name based on response language
 function getBotName(response) {
     const arabicRegex = /[\u0600-\u06FF]/; // Checks for Arabic characters
@@ -80,32 +84,23 @@ function getMessageAlignment(response) {
 
 // Function to display a message in the chatbox with formatting
 function displayMessage(sender, message) {
-    // Process **words** and ### bold formatting
-    let formattedMessage = message
-        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') // Bold for **words**
-        .replace(/###(.*?\.)/g, '<strong>$1</strong>'); // Bold for ### until a period
-
-    formattedMessage = formattedMessage.replace(/\n/g, '<br>'); // Add line breaks
-
-    // Determine alignment dynamically
+    let formattedMessage = message.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>');
     const alignment = getMessageAlignment(message);
-
-    // Display the formatted message
     const messageElement = document.createElement('p');
-    messageElement.style.textAlign = alignment; // Set alignment dynamically
+    messageElement.style.textAlign = alignment;
     messageElement.innerHTML = `<b>${sender}:</b> ${formattedMessage}`;
     chatbox.appendChild(messageElement);
-    chatbox.scrollTop = chatbox.scrollHeight; // Auto-scroll to the bottom
+    chatbox.scrollTop = chatbox.scrollHeight;
 }
 
 // Function to show a loading spinner
 function showLoadingIndicator() {
     const loadingElement = document.createElement('p');
     loadingElement.id = 'loading-indicator';
-    loadingElement.style.textAlign = 'right'; // Default alignment for loading
+    loadingElement.style.textAlign = 'right';
     loadingElement.innerHTML = `<b>FA Ain:</b> <em>Processing your request...</em>`;
     chatbox.appendChild(loadingElement);
-    chatbox.scrollTop = chatbox.scrollHeight; // Auto-scroll to the bottom
+    chatbox.scrollTop = chatbox.scrollHeight;
 }
 
 // Function to remove the loading spinner
@@ -119,6 +114,9 @@ function removeLoadingIndicator() {
 // Function to process user input and get a response from the API
 async function analyzeResponse(userMessage) {
     try {
+        if (!memory.chatHistory) memory.chatHistory = [];
+        memory.chatHistory.push({ role: 'user', content: userMessage });
+
         const response = await fetch('https://api.x.ai/v1/chat/completions', {
             method: 'POST',
             headers: {
@@ -128,7 +126,7 @@ async function analyzeResponse(userMessage) {
             body: JSON.stringify({
                 messages: [
                     { role: 'system', content: systemPrompt },
-                    { role: 'user', content: userMessage },
+                    ...memory.chatHistory,
                 ],
                 model: 'grok-beta',
                 stream: false,
@@ -142,11 +140,12 @@ async function analyzeResponse(userMessage) {
 
         const data = await response.json();
 
-        // Return the processed response
-        return data.choices[0].message.content.trim();
+        const botMessage = data.choices[0].message.content.trim();
+        memory.chatHistory.push({ role: 'bot', content: botMessage });
+        return botMessage;
     } catch (error) {
         console.error('Error communicating with the API:', error);
-        return 'عذرًا، حدث خطأ أثناء معالجة طلبك. حاول مرة أخرى لاحقًا.';
+        return 'Sorry, an error occurred while processing your request. Please try again later.';
     }
 }
 
@@ -154,32 +153,24 @@ async function analyzeResponse(userMessage) {
 sendButton.addEventListener('click', async () => {
     const userMessage = userInput.value.trim();
     if (userMessage) {
-        displayMessage('You', userMessage); // Display the user's message
-        userInput.value = ''; // Clear the input box
+        displayMessage('You', userMessage);
+        userInput.value = '';
 
-        // Check for developer code
         if (userMessage.includes(developerCode)) {
             displayMessage("Developer Mode", "Developer input detected. Awaiting your advice.");
             return;
         }
 
-        // Show the loading indicator
         showLoadingIndicator();
 
         try {
             const botResponse = await analyzeResponse(userMessage);
-
-            // Remove the loading indicator
             removeLoadingIndicator();
-
-            const botName = getBotName(botResponse); // Determine bot name dynamically
+            const botName = getBotName(botResponse);
             displayMessage(botName, botResponse);
         } catch (error) {
             console.error('Error processing user input:', error);
-
-            // Remove the loading indicator
             removeLoadingIndicator();
-
             displayMessage('Bot', 'Sorry, an error occurred while processing your request. Please try again later.');
         }
     }
