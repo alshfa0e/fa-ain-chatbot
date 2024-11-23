@@ -57,12 +57,12 @@
         .header-logo-text .arabic {
             font-size: 1rem;
             font-weight: bold;
-            color: #0056b3;
+            color: #0056b3; /* Match the trademark color */
         }
 
         .header-logo-text .english {
             font-size: 0.9rem;
-            color: #0056b3;
+            color: #0056b3; /* Match the trademark color */
         }
 
         /* Chatbox Section */
@@ -98,7 +98,7 @@
             border-radius: 5px;
             font-size: 1rem;
             height: auto;
-            min-height: 60px;
+            min-height: 60px; /* Default size: 3 lines */
             max-height: 120px;
             line-height: 1.5rem;
             overflow-y: auto;
@@ -183,24 +183,22 @@
 </head>
 <body>
     <div id="chatbox-container">
-        <!-- Header Section -->
+        <!-- Trademark and text -->
         <div class="header-logo">
-            <img src="logo.png" alt="FA Ain Logo">
+            <img src="IMG_0207_transparent.png" alt="FA Ain Logo"> <!-- Direct reference to the main folder -->
             <div class="header-logo-text">
                 <span class="arabic">فاء عين للمشاريع</span>
                 <span class="english">FA Ain For Projects</span>
             </div>
         </div>
 
-        <!-- Chatbox Section -->
+        <!-- Chatbox -->
         <div id="chatbox"></div>
         <div class="input-container">
             <textarea id="userInput" placeholder="Type your message here..."></textarea>
             <button id="sendButton">Send</button>
         </div>
     </div>
-
-    <!-- Link to the app.js file -->
-    <script type="module" src="app.js"></script>
+    <script src="app.js"></script>
 </body>
 </html>
