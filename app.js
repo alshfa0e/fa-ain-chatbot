@@ -181,8 +181,11 @@ async function analyzeResponse(userMessage) {
         });
 
         if (!response.ok) {
-            throw new Error(`API error: ${response.status} ${response.statusText}`);
-        }
+    const errorDetails = await response.text(); // Fetch error details from the server
+    console.error(`API error: ${response.status} ${response.statusText}`, errorDetails);
+    throw new Error(`API error: ${response.status} ${response.statusText}`);
+}
+
 
         const data = await response.json();
         const botMessage = data.choices[0].message.content.trim();
