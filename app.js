@@ -161,4 +161,25 @@ userInput.addEventListener('keypress', (event) => {
 });
 
 // Load the previous session when the chatbot initializes
-await loadPreviousSession();
+(async () => {
+    try {
+        console.log("Loading previous session...");
+        const querySnapshot = await getDocs(collection(db, "sessions"));
+        const sessions = [];
+        querySnapshot.forEach((doc) => {
+            sessions.push({ id: doc.id, ...doc.data() });
+        });
+
+        if (sessions.length > 0) {
+            const lastSession = sessions[sessions.length - 1];
+            memory.chatHistory = lastSession.chatHistory || [];
+            memory.chatHistory.forEach((msg) => {
+                displayMessage(msg.role === 'user' ? 'You' : 'Bot', msg.content);
+            });
+        } else {
+            console.log("No previous sessions found.");
+        }
+    } catch (error) {
+        console.error("Error loading previous session:", error);
+    }
+})();
