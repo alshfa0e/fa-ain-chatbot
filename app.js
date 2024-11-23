@@ -12,10 +12,26 @@ const developerCode = 'Faisal3ez';
 // Memory object for short-term session memory
 let memory = {};
 
+// Import Firebase modules
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
+import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
 
+// Your Firebase configuration
+const firebaseConfig = {
+    apiKey: "AIzaSyClSfhUgX2MfL4wd4x0aCT7G3tAyuzJlcQ",
+    authDomain: "fa-ain-chatbot.firebaseapp.com",
+    projectId: "fa-ain-chatbot",
+    storageBucket: "fa-ain-chatbot.firebasestorage.app",
+    messagingSenderId: "97241230590",
+    appId: "1:97241230590:web:82df89b16d0248cfcd89af",
+    measurementId: "G-ZJM5P3CYY1",
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
 
 // System prompt for the bot, incorporating FA Ain’s core services and tailored recommendations
-
 const systemPrompt = `
 You are the virtual assistant for فاء عين (FA Ain), a company specializing in project management, feasibility studies, financial analysis, and innovative solutions. Your mission is to provide professional, tailored, and actionable assistance to users while embodying FA Ain’s core values of efficiency, innovation, and sustainability. Adapt your responses to meet the needs of diverse users, including individuals, companies, private sectors, and governments.
 
@@ -70,44 +86,40 @@ You are the virtual assistant for فاء عين (FA Ain), a company specializing
    - If the user enters the secret code "Faisal3ez," switch to developer mode and await instructions from the developer.
 `;
 
-// Function to determine bot name based on response language
-function getBotName(response) {
-    const arabicRegex = /[\u0600-\u06FF]/; // Checks for Arabic characters
-    return arabicRegex.test(response) ? "فاء عين" : "FA Ain";
-}
-
-// Function to determine message alignment based on language
-function getMessageAlignment(response) {
-    const arabicRegex = /[\u0600-\u06FF]/; // Checks for Arabic characters
-    return arabicRegex.test(response) ? 'left' : 'right'; // Arabic messages align left, others align right
-}
-
-// Function to display a message in the chatbox with formatting
+// Function to display a message in the chatbox
 function displayMessage(sender, message) {
     let formattedMessage = message.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>');
-    const alignment = getMessageAlignment(message);
     const messageElement = document.createElement('p');
-    messageElement.style.textAlign = alignment;
     messageElement.innerHTML = `<b>${sender}:</b> ${formattedMessage}`;
     chatbox.appendChild(messageElement);
     chatbox.scrollTop = chatbox.scrollHeight;
 }
 
-// Function to show a loading spinner
-function showLoadingIndicator() {
-    const loadingElement = document.createElement('p');
-    loadingElement.id = 'loading-indicator';
-    loadingElement.style.textAlign = 'right';
-    loadingElement.innerHTML = `<b>FA Ain:</b> <em>Processing your request...</em>`;
-    chatbox.appendChild(loadingElement);
-    chatbox.scrollTop = chatbox.scrollHeight;
+// Function to save a conversation session to Firestore
+async function saveConversationToDatabase() {
+    try {
+        if (memory.chatHistory && memory.chatHistory.length > 0) {
+            await addDoc(collection(db, "conversations"), {
+                timestamp: new Date(),
+                chatHistory: memory.chatHistory,
+            });
+            console.log("Conversation saved to Firestore!");
+        }
+    } catch (error) {
+        console.error("Error saving conversation to Firestore:", error);
+    }
 }
 
-// Function to remove the loading spinner
-function removeLoadingIndicator() {
-    const loadingElement = document.getElementById('loading-indicator');
-    if (loadingElement) {
-        chatbox.removeChild(loadingElement);
+// Function to save contact details to Firestore
+async function saveContactToDatabase(contact) {
+    try {
+        await addDoc(collection(db, "contacts"), {
+            timestamp: new Date(),
+            contact: contact,
+        });
+        console.log("Contact saved to Firestore!");
+    } catch (error) {
+        console.error("Error saving contact to Firestore:", error);
     }
 }
 
@@ -142,6 +154,10 @@ async function analyzeResponse(userMessage) {
 
         const botMessage = data.choices[0].message.content.trim();
         memory.chatHistory.push({ role: 'bot', content: botMessage });
+
+        // Save conversation to Firestore
+        await saveConversationToDatabase();
+
         return botMessage;
     } catch (error) {
         console.error('Error communicating with the API:', error);
@@ -156,21 +172,19 @@ sendButton.addEventListener('click', async () => {
         displayMessage('You', userMessage);
         userInput.value = '';
 
-        if (userMessage.includes(developerCode)) {
-            displayMessage("Developer Mode", "Developer input detected. Awaiting your advice.");
+        // Save contact details if provided
+        if (userMessage.toLowerCase().includes('my contact is')) {
+            const contact = userMessage.split('my contact is')[1].trim();
+            await saveContactToDatabase(contact);
+            displayMessage('Bot', 'Thank you! Your contact details have been saved.');
             return;
         }
 
-        showLoadingIndicator();
-
         try {
             const botResponse = await analyzeResponse(userMessage);
-            removeLoadingIndicator();
-            const botName = getBotName(botResponse);
-            displayMessage(botName, botResponse);
+            displayMessage("FA Ain", botResponse);
         } catch (error) {
             console.error('Error processing user input:', error);
-            removeLoadingIndicator();
             displayMessage('Bot', 'Sorry, an error occurred while processing your request. Please try again later.');
         }
     }
