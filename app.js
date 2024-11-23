@@ -107,13 +107,13 @@ async function analyzeResponse(userMessage) {
                     { role: 'system', content: systemPrompt },
                     { role: 'user', content: userMessage },
                 ],
-                model: 'grok-beta',
+                model: 'grok-beta', // Replace with your chosen model
                 stream: false,
                 temperature: 0.7,
             }),
         });
 
-        if (!response.ok) throw new Error(`API error: ${response.statusText}`);
+        if (!response.ok) throw new Error(`API error: ${response.status} ${response.statusText}`);
         const data = await response.json();
         removeLoadingIndicator();
         displayMessage(botName, data.choices[0].message.content.trim());
