@@ -106,7 +106,7 @@ async function analyzeResponse(userMessage) {
                     { role: 'system', content: systemPrompt },
                     { role: 'user', content: userMessage },
                 ],
-                model: 'grok-beta', // Replace with your chosen model
+                model: 'grok-beta',
                 stream: false,
                 temperature: 0.7,
             }),
@@ -128,7 +128,7 @@ async function analyzeResponse(userMessage) {
 function showLoadingIndicator() {
     const loadingElement = document.createElement('p');
     loadingElement.id = 'loading-indicator';
-    loadingElement.innerHTML = `<b>Processing...</b>`;
+    loadingElement.innerHTML = `<b>Processing your request...</b>`;
     chatbox.appendChild(loadingElement);
     chatbox.scrollTop = chatbox.scrollHeight; // Auto-scroll to the bottom
 }
@@ -152,5 +152,8 @@ sendButton.addEventListener('click', () => {
 
 // Add "Enter" key functionality
 userInput.addEventListener('keypress', (event) => {
-    if (event.key === 'Enter') sendButton.click();
+    if (event.key === 'Enter') {
+        event.preventDefault(); // Prevent newline in textarea
+        sendButton.click();
+    }
 });
