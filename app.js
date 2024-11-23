@@ -98,13 +98,28 @@ async function analyzeResponse(userMessage) {
 }
 
 // Event listener for the Send button
-sendButton.addEventListener('click', () => {
+sendButton.addEventListener('click', async () => {
     const userMessage = userInput.value.trim();
-    console.log("Captured user message:", userMessage); // Log the captured message
+    console.log("Captured user message:", userMessage); // Log user input
     if (!userMessage) {
         console.error("No message entered!");
+        return;
+    }
+
+    displayMessage('You', userMessage); // Log message display
+    userInput.value = '';
+
+    try {
+        console.log("Calling analyzeResponse with:", userMessage); // Log API call
+        const botResponse = await analyzeResponse(userMessage);
+        console.log("Received bot response:", botResponse); // Log bot response
+        displayMessage('FA Ain', botResponse);
+    } catch (error) {
+        console.error("Error during message processing:", error);
+        displayMessage('FA Ain', "Sorry, an error occurred. Please try again.");
     }
 });
+
 
 // Enable "Enter" key to send messages
 userInput.addEventListener('keypress', (event) => {
