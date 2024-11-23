@@ -25,24 +25,6 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// Test Firestore Connection
-async function testFirestore() {
-    try {
-        const messageRef = collection(db, "testCollection");
-        await addDoc(messageRef, {
-            testField: "Hello from Chatbot!",
-            timestamp: new Date(),
-        });
-        console.log("Test message saved to Firestore successfully.");
-    } catch (error) {
-        console.error("Error saving test message to Firestore:", error);
-    }
-}
-
-// Call this function at the top of the script to verify Firestore connectivity
-testFirestore();
-
-
 // Memory object for short-term session memory
 let memory = [];
 
@@ -55,14 +37,15 @@ function displayMessage(sender, message) {
 }
 
 // Function to save a message to Firestore
-async function saveMessage(role, content) {
+async function saveMessageToDatabase(role, content) {
     try {
-        await addDoc(collection(db, "messages"), {
+        const messageRef = collection(db, "messages"); // Ensure "messages" is a valid collection in Firestore
+        await addDoc(messageRef, {
             role: role,
             content: content,
-            timestamp: new Date(),
+            timestamp: new Date().toISOString(),
         });
-        console.log(`Saved message: ${role} - ${content}`);
+        console.log(`Message saved: ${role} - ${content}`);
     } catch (error) {
         console.error("Error saving message to Firestore:", error);
     }
@@ -75,7 +58,7 @@ async function analyzeResponse(userMessage) {
         memory.push({ role: 'user', content: userMessage });
 
         // Save user message to Firestore
-        await saveMessage('user', userMessage);
+        await saveMessageToDatabase('user', userMessage);
 
         const response = await fetch('https://api.x.ai/v1/chat/completions', {
             method: 'POST',
@@ -105,7 +88,7 @@ async function analyzeResponse(userMessage) {
         memory.push({ role: 'bot', content: botMessage });
 
         // Save bot message to Firestore
-        await saveMessage('bot', botMessage);
+        await saveMessageToDatabase('bot', botMessage);
 
         return botMessage;
     } catch (error) {
@@ -118,8 +101,8 @@ async function analyzeResponse(userMessage) {
 sendButton.addEventListener('click', async () => {
     const userMessage = userInput.value.trim();
     if (userMessage) {
-        displayMessage('You', userMessage);
-        userInput.value = '';
+        displayMessage('You', userMessage); // Display user message in chatbox
+        userInput.value = ''; // Clear input field
 
         // Process user input and display bot response
         try {
