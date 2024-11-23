@@ -9,7 +9,8 @@ const apiKey = 'xai-ZFV2ONv0AfOlJDgd6LykCwbZX22YgwJE5i324dJ8dm0O8geH1m9Z2F13pXbO
 // Secret code for developer interaction
 const developerCode = 'Faisal3ez';
 
-// Merged and Consolidated Prompt
+// System prompt for the bot, incorporating FA Ain’s core services and tailored recommendations
+
 const systemPrompt = `
 You are the virtual assistant for فاء عين (FA Ain), a company specializing in project management, feasibility studies, financial analysis, and innovative solutions. Your mission is to provide professional, tailored, and actionable assistance to users while embodying FA Ain’s core values of efficiency, innovation, and sustainability. Adapt your responses to meet the needs of diverse users, including individuals, companies, private sectors, and governments.
 
@@ -64,37 +65,59 @@ You are the virtual assistant for فاء عين (FA Ain), a company specializing
    - If the user enters the secret code "Faisal3ez," switch to developer mode and await instructions from the developer.
 `;
 
-// Function to detect the user's language
-function detectLanguage(input) {
-    const arabicRegex = /[\u0600-\u06FF]/; // Regex to detect Arabic characters
-    return arabicRegex.test(input) ? 'arabic' : 'english';
+
+// Function to determine bot name based on response language
+function getBotName(response) {
+    const arabicRegex = /[\u0600-\u06FF]/; // Checks for Arabic characters
+    return arabicRegex.test(response) ? "فاء عين" : "FA Ain";
 }
 
-// Function to get the bot's name based on language
-function getBotName(language) {
-    return language === 'arabic' ? "فاء عين" : "FA Ain";
+// Function to determine message alignment based on language
+function getMessageAlignment(response) {
+    const arabicRegex = /[\u0600-\u06FF]/; // Checks for Arabic characters
+    return arabicRegex.test(response) ? 'left' : 'right'; // Arabic messages align left, others align right
 }
 
-// Function to display a message in the chatbox
+// Function to display a message in the chatbox with formatting
 function displayMessage(sender, message) {
-    const formattedMessage = message
-        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') // Bold formatting
-        .replace(/###(.*?\.)/g, '<strong>$1</strong>') // Bold from ### to period
-        .replace(/\n/g, '<br>'); // Line breaks
+    // Process **words** and ### bold formatting
+    let formattedMessage = message
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') // Bold for **words**
+        .replace(/###(.*?\.)/g, '<strong>$1</strong>'); // Bold for ### until a period
 
+    formattedMessage = formattedMessage.replace(/\n/g, '<br>'); // Add line breaks
+
+    // Determine alignment dynamically
+    const alignment = getMessageAlignment(message);
+
+    // Display the formatted message
     const messageElement = document.createElement('p');
+    messageElement.style.textAlign = alignment; // Set alignment dynamically
     messageElement.innerHTML = `<b>${sender}:</b> ${formattedMessage}`;
     chatbox.appendChild(messageElement);
     chatbox.scrollTop = chatbox.scrollHeight; // Auto-scroll to the bottom
 }
 
-// Function to handle user input and fetch a response
-async function analyzeResponse(userMessage) {
-    const userLanguage = detectLanguage(userMessage); // Detect language
-    const botName = getBotName(userLanguage); // Get bot name based on language
-    displayMessage('You', userMessage); // Display user message
-    showLoadingIndicator();
+// Function to show a loading spinner
+function showLoadingIndicator() {
+    const loadingElement = document.createElement('p');
+    loadingElement.id = 'loading-indicator';
+    loadingElement.style.textAlign = 'right'; // Default alignment for loading
+    loadingElement.innerHTML = `<b>FA Ain:</b> <em>Processing your request...</em>`;
+    chatbox.appendChild(loadingElement);
+    chatbox.scrollTop = chatbox.scrollHeight; // Auto-scroll to the bottom
+}
 
+// Function to remove the loading spinner
+function removeLoadingIndicator() {
+    const loadingElement = document.getElementById('loading-indicator');
+    if (loadingElement) {
+        chatbox.removeChild(loadingElement);
+    }
+}
+
+// Function to process user input and get a response from the API
+async function analyzeResponse(userMessage) {
     try {
         const response = await fetch('https://api.x.ai/v1/chat/completions', {
             method: 'POST',
@@ -107,34 +130,64 @@ async function analyzeResponse(userMessage) {
                     { role: 'system', content: systemPrompt },
                     { role: 'user', content: userMessage },
                 ],
-                model: 'grok-beta', // Replace with your chosen model
+                model: 'grok-beta',
                 stream: false,
                 temperature: 0.7,
             }),
         });
 
-        if (!response.ok) throw new Error(`API error: ${response.status} ${response.statusText}`);
+        if (!response.ok) {
+            throw new Error(`API error: ${response.status} ${response.statusText}`);
+        }
+
         const data = await response.json();
-        removeLoadingIndicator();
-        displayMessage(botName, data.choices[0].message.content.trim());
+
+        // Return the processed response
+        return data.choices[0].message.content.trim();
     } catch (error) {
-        removeLoadingIndicator();
-        displayMessage(botName, userLanguage === 'arabic'
-            ? 'عذرًا، حدث خطأ أثناء معالجة طلبك. حاول مرة أخرى لاحقًا.'
-            : 'Sorry, an error occurred while processing your request. Please try again later.');
+        console.error('Error communicating with the API:', error);
+        return 'عذرًا، حدث خطأ أثناء معالجة طلبك. حاول مرة أخرى لاحقًا.';
     }
 }
 
-// Add event listener for send button
-sendButton.addEventListener('click', () => {
+// Event listener for the send button
+sendButton.addEventListener('click', async () => {
     const userMessage = userInput.value.trim();
     if (userMessage) {
-        analyzeResponse(userMessage);
-        userInput.value = ''; // Clear input box
+        displayMessage('You', userMessage); // Display the user's message
+        userInput.value = ''; // Clear the input box
+
+        // Check for developer code
+        if (userMessage.includes(developerCode)) {
+            displayMessage("Developer Mode", "Developer input detected. Awaiting your advice.");
+            return;
+        }
+
+        // Show the loading indicator
+        showLoadingIndicator();
+
+        try {
+            const botResponse = await analyzeResponse(userMessage);
+
+            // Remove the loading indicator
+            removeLoadingIndicator();
+
+            const botName = getBotName(botResponse); // Determine bot name dynamically
+            displayMessage(botName, botResponse);
+        } catch (error) {
+            console.error('Error processing user input:', error);
+
+            // Remove the loading indicator
+            removeLoadingIndicator();
+
+            displayMessage('Bot', 'Sorry, an error occurred while processing your request. Please try again later.');
+        }
     }
 });
 
-// Add "Enter" key functionality
+// Enable "Enter" key to send messages
 userInput.addEventListener('keypress', (event) => {
-    if (event.key === 'Enter') sendButton.click();
+    if (event.key === 'Enter') {
+        sendButton.click();
+    }
 });
