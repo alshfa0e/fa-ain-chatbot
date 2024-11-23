@@ -32,64 +32,23 @@ const db = getFirestore(app);
 // System prompt for the bot, incorporating FA Ain’s core services and tailored recommendations
 const systemPrompt = `
 You are the virtual assistant for فاء عين (FA Ain), a company specializing in project management, feasibility studies, financial analysis, and innovative solutions. Your mission is to provide professional, tailored, and actionable assistance to users while embodying FA Ain’s core values of efficiency, innovation, and sustainability. Adapt your responses to meet the needs of diverse users, including individuals, companies, private sectors, and governments.
-
-### Guidelines:
-
-1. **Understand User Needs**:
-   - Analyze user queries to extract critical details such as project type, budget, goals, and location.
-   - Identify implicit needs and adapt responses to the user’s context, whether they are an individual, a company, a private sector entity, or a government body.
-   - If users are unsure about their needs, guide them step by step with clarifying questions.
-
-2. **Tailored Recommendations**:
-   - Match the user’s needs to FA Ain’s core services:
-     - **Project Development and Management**: Comprehensive planning, execution, and optimization.
-     - **Consulting and Feasibility Studies**: Market research, viability analysis, and risk assessment.
-     - **Financial and Investment Analysis**: Budget planning, cost optimization, and ROI analysis.
-     - **Innovative and Digital Solutions**: AI-powered tools, data-driven strategies, and automation.
-   - Provide examples and actionable next steps, ensuring users feel empowered and informed.
-
-3. **Adapt to Audience**:
-   - For **government representatives**:
-     - Highlight FA Ain’s ability to handle large-scale public projects, policy alignment, and sustainability.
-     - Provide insights into national-scale strategies or infrastructure projects.
-   - For **multi-billion-dollar companies**:
-     - Emphasize scalability, security, and integration with existing systems.
-     - Suggest solutions aligned with corporate goals, ESG (environmental, social, and governance) compliance, and innovation.
-   - For **beginner entrepreneurs**:
-     - Simplify complex concepts and break down FA Ain’s services into easy-to-understand steps.
-     - Offer reassurance and motivational advice to guide them from idea to execution.
-
-4. **Proactive Engagement**:
-   - Anticipate user needs based on their inputs and provide recommendations without waiting for specific questions.
-   - Suggest innovative ideas, industry benchmarks, or potential opportunities relevant to their sector.
-
-5. **Professional Tone**:
-   - Use a polite, professional tone while maintaining approachability and inspiration.
-   - Respond in the user’s language (Arabic or English), ensuring cultural relevance and fluency.
-
-6. **Closure and Follow-Up**:
-   - End conversations gracefully when all necessary assistance has been provided.
-   - Summarize the discussion, highlighting actionable steps, and suggest scheduling a consultation or visiting FA Ain’s offices.
-   - If users hesitate or don’t provide enough information, encourage them to leave their contact details for follow-up.
-
-7. **Error Handling and Redirection**:
-   - If the user’s query is unrelated to FA Ain’s services (e.g., job search), politely clarify the scope of FA Ain and redirect the conversation toward relevant project-based solutions.
-   - Provide fallback responses for unexpected inputs while maintaining professionalism.
-
-8. **Scalability and Innovation**:
-   - Showcase FA Ain’s ability to scale solutions for high-demand scenarios or large-scale projects.
-   - Highlight innovative approaches, including AI-powered tools, market insights, and sustainability-focused strategies.
-
-9. **Developer Mode**:
-   - If the user enters the secret code "Faisal3ez," switch to developer mode and await instructions from the developer.
 `;
 
 // Function to display messages in the chatbox
 function displayMessage(sender, message) {
+    console.log(`Displaying message from ${sender}:`, message);
+
+    // Validate message content
+    if (!message || typeof message !== 'string') {
+        console.error("Invalid message content:", message);
+        return;
+    }
+
+    // Create message element
     const messageElement = document.createElement('p');
-    messageElement.innerHTML = `<b>${sender}:</b> ${message}`;
+    messageElement.innerHTML = `<b>${sender}:</b> ${message.replace(/\n/g, '<br>')}`;
     chatbox.appendChild(messageElement);
-    chatbox.scrollTop = chatbox.scrollHeight;
+    chatbox.scrollTop = chatbox.scrollHeight; // Auto-scroll to the bottom
 }
 
 // Function to save conversations to Firestore
@@ -120,28 +79,41 @@ async function saveContactDetailsToFirestore(contact) {
     }
 }
 
-// Function to process user input
+// Function to process user input and generate bot response
 async function processUserInput(userMessage) {
+    console.log("Processing user input:", userMessage);
+
     // Save user message to memory
     if (!memory.chatHistory) memory.chatHistory = [];
     memory.chatHistory.push({ role: "user", content: userMessage });
 
-    // Simulated bot response for testing
+    // Simulated bot response (replace this with actual API response if needed)
     const botResponse = "Thank you for sharing! How can I assist you further?";
+    console.log("Generated bot response:", botResponse);
+
+    // Save bot response to memory
     memory.chatHistory.push({ role: "bot", content: botResponse });
 
-    // Display bot response
+    // Display bot response in the chatbox
     displayMessage("FA Ain", botResponse);
 
     // Save conversation to Firestore
     await saveConversationToFirestore();
 }
 
-// Event listener for send button
+// Event listener for the Send button
 sendButton.addEventListener('click', async () => {
+    console.log("Send button clicked");
+
+    // Get user input
     const userMessage = userInput.value.trim();
     if (userMessage) {
+        console.log("User message to process:", userMessage);
+
+        // Display user message in the chatbox
         displayMessage("You", userMessage);
+
+        // Clear input field
         userInput.value = '';
 
         // Check if the user provided contact details
@@ -152,6 +124,7 @@ sendButton.addEventListener('click', async () => {
             return;
         }
 
+        // Process user input and generate bot response
         await processUserInput(userMessage);
     }
 });
@@ -159,6 +132,7 @@ sendButton.addEventListener('click', async () => {
 // Enable "Enter" key to send messages
 userInput.addEventListener('keypress', (event) => {
     if (event.key === 'Enter') {
+        console.log("Enter key pressed");
         sendButton.click();
     }
 });
