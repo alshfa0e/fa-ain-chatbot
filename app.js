@@ -6,9 +6,6 @@ const sendButton = document.getElementById('sendButton');
 // Authorization token for Grok API
 const apiKey = 'xai-ZFV2ONv0AfOlJDgd6LykCwbZX22YgwJE5i324dJ8dm0O8geH1m9Z2F13pXbOuRTy8kHtZoUnttJvqS3M'; // Replace with your Grok API key
 
-// Secret code for developer interaction
-const developerCode = 'Faisal3ez';
-
 // Memory object for short-term session memory
 let memory = {};
 
@@ -16,7 +13,7 @@ let memory = {};
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
 import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
 
-// Your Firebase configuration
+// Firebase configuration
 const firebaseConfig = {
     apiKey: "AIzaSyClSfhUgX2MfL4wd4x0aCT7G3tAyuzJlcQ",
     authDomain: "fa-ain-chatbot.firebaseapp.com",
@@ -87,22 +84,21 @@ You are the virtual assistant for فاء عين (FA Ain), a company specializing
    - If the user enters the secret code "Faisal3ez," switch to developer mode and await instructions from the developer.
 `;
 
-// Function to display a message in the chatbox
+// Function to display messages in the chatbox
 function displayMessage(sender, message) {
-    let formattedMessage = message.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>');
     const messageElement = document.createElement('p');
-    messageElement.innerHTML = `<b>${sender}:</b> ${formattedMessage}`;
+    messageElement.innerHTML = `<b>${sender}:</b> ${message}`;
     chatbox.appendChild(messageElement);
     chatbox.scrollTop = chatbox.scrollHeight;
 }
 
-// Function to save a conversation session to Firestore
-async function saveConversationToDatabase() {
+// Function to save conversations to Firestore
+async function saveConversationToFirestore() {
     try {
         if (memory.chatHistory && memory.chatHistory.length > 0) {
             await addDoc(collection(db, "conversations"), {
-                timestamp: new Date(),
                 chatHistory: memory.chatHistory,
+                timestamp: new Date(),
             });
             console.log("Conversation saved to Firestore!");
         }
@@ -111,83 +107,52 @@ async function saveConversationToDatabase() {
     }
 }
 
-// Function to save contact details to Firestore
-async function saveContactToDatabase(contact) {
+// Function to save user contact details to Firestore
+async function saveContactDetailsToFirestore(contact) {
     try {
         await addDoc(collection(db, "contacts"), {
-            timestamp: new Date(),
             contact: contact,
+            timestamp: new Date(),
         });
-        console.log("Contact saved to Firestore!");
+        console.log("Contact details saved to Firestore!");
     } catch (error) {
-        console.error("Error saving contact to Firestore:", error);
+        console.error("Error saving contact details to Firestore:", error);
     }
 }
 
-// Function to process user input and get a response from the API
-async function analyzeResponse(userMessage) {
-    try {
-        if (!memory.chatHistory) memory.chatHistory = [];
-        memory.chatHistory.push({ role: 'user', content: userMessage });
+// Function to process user input
+async function processUserInput(userMessage) {
+    // Save user message to memory
+    if (!memory.chatHistory) memory.chatHistory = [];
+    memory.chatHistory.push({ role: "user", content: userMessage });
 
-        const response = await fetch('https://api.x.ai/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${apiKey}`,
-            },
-            body: JSON.stringify({
-                messages: [
-                    { role: 'system', content: systemPrompt },
-                    ...memory.chatHistory,
-                ],
-                model: 'grok-beta',
-                stream: false,
-                temperature: 0.7,
-            }),
-        });
+    // Simulated bot response for testing
+    const botResponse = "Thank you for sharing! How can I assist you further?";
+    memory.chatHistory.push({ role: "bot", content: botResponse });
 
-        if (!response.ok) {
-            throw new Error(`API error: ${response.status} ${response.statusText}`);
-        }
+    // Display bot response
+    displayMessage("FA Ain", botResponse);
 
-        const data = await response.json();
-
-        const botMessage = data.choices[0].message.content.trim();
-        memory.chatHistory.push({ role: 'bot', content: botMessage });
-
-        // Save conversation to Firestore
-        await saveConversationToDatabase();
-
-        return botMessage;
-    } catch (error) {
-        console.error('Error communicating with the API:', error);
-        return 'Sorry, an error occurred while processing your request. Please try again later.';
-    }
+    // Save conversation to Firestore
+    await saveConversationToFirestore();
 }
 
-// Event listener for the send button
+// Event listener for send button
 sendButton.addEventListener('click', async () => {
     const userMessage = userInput.value.trim();
     if (userMessage) {
-        displayMessage('You', userMessage);
+        displayMessage("You", userMessage);
         userInput.value = '';
 
-        // Save contact details if provided
+        // Check if the user provided contact details
         if (userMessage.toLowerCase().includes('my contact is')) {
             const contact = userMessage.split('my contact is')[1].trim();
-            await saveContactToDatabase(contact);
-            displayMessage('Bot', 'Thank you! Your contact details have been saved.');
+            await saveContactDetailsToFirestore(contact);
+            displayMessage("FA Ain", "Thank you! Your contact details have been saved.");
             return;
         }
 
-        try {
-            const botResponse = await analyzeResponse(userMessage);
-            displayMessage("FA Ain", botResponse);
-        } catch (error) {
-            console.error('Error processing user input:', error);
-            displayMessage('Bot', 'Sorry, an error occurred while processing your request. Please try again later.');
-        }
+        await processUserInput(userMessage);
     }
 });
 
