@@ -73,12 +73,18 @@
             background-color: #f7f7f7;
         }
 
-        #chatbox p {
+        #chatbox div {
             margin: 10px 0;
         }
 
-        #chatbox p b {
-            color: #0056b3;
+        #chatbox div.user-message {
+            text-align: right;
+            color: blue;
+        }
+
+        #chatbox div.bot-message {
+            text-align: left;
+            color: green;
         }
 
         /* Input Container */
@@ -200,7 +206,7 @@
         </div>
     </div>
 
-    <!-- Link to the app.js file -->
+    <!-- Link to app.js -->
     <script type="module" src="app.js"></script>
 </body>
 </html>
