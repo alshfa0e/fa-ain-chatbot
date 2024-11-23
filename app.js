@@ -1,4 +1,23 @@
-// Select the elements from the HTML file
+// Import Firebase modules
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
+import { getFirestore, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
+
+// Your Firebase configuration
+const firebaseConfig = {
+    apiKey: "AIzaSyClSfhUgX2MfL4wd4x0aCT7G3tAyuzJlcQ",
+    authDomain: "fa-ain-chatbot.firebaseapp.com",
+    projectId: "fa-ain-chatbot",
+    storageBucket: "fa-ain-chatbot.firebasestorage.app",
+    messagingSenderId: "97241230590",
+    appId: "1:97241230590:web:82df89b16d0248cfcd89af",
+    measurementId: "G-ZJM5P3CYY1",
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+// Select elements from the HTML file
 const chatbox = document.getElementById('chatbox');
 const userInput = document.getElementById('userInput');
 const sendButton = document.getElementById('sendButton');
@@ -70,44 +89,71 @@ You are the virtual assistant for فاء عين (FA Ain), a company specializing
    - If the user enters the secret code "Faisal3ez," switch to developer mode and await instructions from the developer.
 `;
 
+
 // Function to determine bot name based on response language
 function getBotName(response) {
     const arabicRegex = /[\u0600-\u06FF]/; // Checks for Arabic characters
     return arabicRegex.test(response) ? "فاء عين" : "FA Ain";
 }
 
-// Function to determine message alignment based on language
-function getMessageAlignment(response) {
-    const arabicRegex = /[\u0600-\u06FF]/; // Checks for Arabic characters
-    return arabicRegex.test(response) ? 'left' : 'right'; // Arabic messages align left, others align right
-}
-
-// Function to display a message in the chatbox with formatting
+// Function to display a message in the chatbox
 function displayMessage(sender, message) {
-    let formattedMessage = message.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>');
-    const alignment = getMessageAlignment(message);
     const messageElement = document.createElement('p');
-    messageElement.style.textAlign = alignment;
-    messageElement.innerHTML = `<b>${sender}:</b> ${formattedMessage}`;
+    messageElement.innerHTML = `<b>${sender}:</b> ${message}`;
     chatbox.appendChild(messageElement);
     chatbox.scrollTop = chatbox.scrollHeight;
 }
 
-// Function to show a loading spinner
-function showLoadingIndicator() {
-    const loadingElement = document.createElement('p');
-    loadingElement.id = 'loading-indicator';
-    loadingElement.style.textAlign = 'right';
-    loadingElement.innerHTML = `<b>FA Ain:</b> <em>Processing your request...</em>`;
-    chatbox.appendChild(loadingElement);
-    chatbox.scrollTop = chatbox.scrollHeight;
+// Function to save a conversation session to Firestore
+async function saveConversationToDatabase() {
+    try {
+        if (memory.chatHistory && memory.chatHistory.length > 0) {
+            await addDoc(collection(db, "sessions"), {
+                timestamp: new Date(),
+                chatHistory: memory.chatHistory,
+            });
+            console.log("Session saved to Firestore!");
+        }
+    } catch (error) {
+        console.error("Error saving session: ", error);
+    }
 }
 
-// Function to remove the loading spinner
-function removeLoadingIndicator() {
-    const loadingElement = document.getElementById('loading-indicator');
-    if (loadingElement) {
-        chatbox.removeChild(loadingElement);
+// Function to save contact details to Firestore
+async function saveContactToDatabase(contact) {
+    try {
+        await addDoc(collection(db, "contacts"), {
+            timestamp: new Date(),
+            contact: contact,
+        });
+        console.log("Contact saved to Firestore!");
+    } catch (error) {
+        console.error("Error saving contact: ", error);
+    }
+}
+
+// Function to load the user's previous session from Firestore
+async function loadPreviousSession() {
+    try {
+        const querySnapshot = await getDocs(collection(db, "sessions"));
+        const sessions = [];
+        querySnapshot.forEach((doc) => {
+            sessions.push({ id: doc.id, ...doc.data() });
+        });
+
+        // Load the most recent session into memory
+        if (sessions.length > 0) {
+            const lastSession = sessions[sessions.length - 1];
+            memory.chatHistory = lastSession.chatHistory || [];
+            console.log("Previous session loaded:", lastSession);
+
+            // Display the previous session in the chatbox
+            memory.chatHistory.forEach((msg) => {
+                displayMessage(msg.role === 'user' ? 'You' : 'Bot', msg.content);
+            });
+        }
+    } catch (error) {
+        console.error("Error loading previous session: ", error);
     }
 }
 
@@ -139,13 +185,16 @@ async function analyzeResponse(userMessage) {
         }
 
         const data = await response.json();
-
         const botMessage = data.choices[0].message.content.trim();
         memory.chatHistory.push({ role: 'bot', content: botMessage });
+
+        // Save the updated session to Firestore
+        await saveConversationToDatabase();
+
         return botMessage;
     } catch (error) {
         console.error('Error communicating with the API:', error);
-        return 'Sorry, an error occurred while processing your request. Please try again later.';
+        return 'Sorry, an error occurred while processing your request.';
     }
 }
 
@@ -156,22 +205,28 @@ sendButton.addEventListener('click', async () => {
         displayMessage('You', userMessage);
         userInput.value = '';
 
+        // Check for developer command
         if (userMessage.includes(developerCode)) {
-            displayMessage("Developer Mode", "Developer input detected. Awaiting your advice.");
+            displayMessage("Developer Mode", JSON.stringify(memory, null, 2));
             return;
         }
 
-        showLoadingIndicator();
+        // Check for contact details
+        if (userMessage.toLowerCase().includes('my contact is')) {
+            const contact = userMessage.split('my contact is')[1].trim();
+            await saveContactToDatabase(contact);
+            displayMessage('Bot', 'Thank you! Your contact details have been saved.');
+            return;
+        }
 
+        // Process user input and get bot response
         try {
             const botResponse = await analyzeResponse(userMessage);
-            removeLoadingIndicator();
             const botName = getBotName(botResponse);
             displayMessage(botName, botResponse);
         } catch (error) {
             console.error('Error processing user input:', error);
-            removeLoadingIndicator();
-            displayMessage('Bot', 'Sorry, an error occurred while processing your request. Please try again later.');
+            displayMessage('Bot', 'Sorry, an error occurred while processing your request.');
         }
     }
 });
@@ -182,3 +237,6 @@ userInput.addEventListener('keypress', (event) => {
         sendButton.click();
     }
 });
+
+// Load the previous session when the chatbot initializes
+await loadPreviousSession();
