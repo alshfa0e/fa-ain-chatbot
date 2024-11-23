@@ -98,20 +98,11 @@ async function analyzeResponse(userMessage) {
 }
 
 // Event listener for the Send button
-sendButton.addEventListener('click', async () => {
+sendButton.addEventListener('click', () => {
     const userMessage = userInput.value.trim();
-    if (userMessage) {
-        displayMessage('You', userMessage); // Display user message in chatbox
-        userInput.value = ''; // Clear input field
-
-        // Process user input and display bot response
-        try {
-            const botResponse = await analyzeResponse(userMessage);
-            displayMessage('FA Ain', botResponse);
-        } catch (error) {
-            console.error("Error handling user input:", error);
-            displayMessage('FA Ain', "Sorry, an error occurred. Please try again.");
-        }
+    console.log("Captured user message:", userMessage); // Log the captured message
+    if (!userMessage) {
+        console.error("No message entered!");
     }
 });
 
